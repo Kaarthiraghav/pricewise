@@ -1,0 +1,24 @@
+# Data
+data/raw/
+
+# Models
+models/
+
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# OS
+.DS_Store
+Thumbs.db
