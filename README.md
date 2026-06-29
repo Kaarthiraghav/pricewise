@@ -234,3 +234,136 @@ Full plan saved to `reports/eda_summary.md`.
 | `notebooks/02_eda.ipynb` | Full EDA notebook — 8 sections    |
 | `reports/eda_summary.md` | Sprint 3 feature engineering plan |
 | `reports/figures/`       | 15 saved PNG plots                |
+
+---
+
+## Sprint 3 — Feature Engineering
+
+### Overview
+
+Sprint 3 transforms the cleaned dataset from Sprint 1 into a fully
+engineered, model-ready feature set. Every feature is justified by
+EDA findings from Sprint 2. The output is `data/processed/featured_data.csv`
+— the direct input to Sprint 4 modeling.
+
+---
+
+### Input → Output
+
+|                     | Value                              |
+| ------------------- | ---------------------------------- |
+| Input               | `data/processed/clean_data.csv`    |
+| Input shape         | 1,458 × 78                         |
+| Output              | `data/processed/featured_data.csv` |
+| Output shape        | 1,458 × 172                        |
+| Features engineered | 11                                 |
+| Columns dropped     | 16                                 |
+
+---
+
+### Pipeline
+
+```
+data/processed/clean_data.csv
+        ↓
+drop_low_signal()          — 10 near-zero variance + 5 dominant categorical + Id
+add_size_features()        — total_sf, total_bathrooms, total_porch_sf
+add_age_features()         — house_age, remod_age, has_remodelled
+add_interaction_features() — qual_x_sf, overall_score
+add_binary_flags()         — has_garage, has_basement
+add_neighbourhood_tier()   — Low / Mid / High
+apply_log1p_transform()    — 5 highly skewed area/SF features
+encode_categoricals()      — 17 nominal categoricals → 117 dummy columns
+        ↓
+data/processed/featured_data.csv
+```
+
+---
+
+### Features Engineered
+
+| Category    | Feature              | Formula                                | Correlation         |
+| ----------- | -------------------- | -------------------------------------- | ------------------- |
+| Size        | `total_sf`           | TotalBsmtSF + GrLivArea                | 0.8236              |
+| Size        | `total_bathrooms`    | FullBath + 0.5×HalfBath + BsmtFullBath | 0.6722              |
+| Size        | `total_porch_sf`     | Sum of all porch SF columns            | 0.3943              |
+| Age         | `house_age`          | YrSold − YearBuilt                     | −0.5787             |
+| Age         | `remod_age`          | YrSold − YearRemodAdd                  | −0.5685             |
+| Age         | `has_remodelled`     | YearRemodAdd ≠ YearBuilt               | −0.0741             |
+| Interaction | `qual_x_sf`          | OverallQual × GrLivArea                | 0.8490              |
+| Interaction | `overall_score`      | OverallQual × OverallCond              | 0.6080              |
+| Flag        | `has_garage`         | GarageArea > 0                         | 0.3230              |
+| Flag        | `has_basement`       | TotalBsmtSF > 0                        | —                   |
+| Location    | `neighbourhood_tier` | Low / Mid / High                       | 0.5867 (High dummy) |
+
+> `has_pool` was not engineered — `PoolArea` was dropped as near-zero
+> variance (only 13 of 1,458 houses have pools).
+
+---
+
+### Columns Dropped
+
+| Category                                       | Count  |
+| ---------------------------------------------- | ------ |
+| Near-zero variance numeric (>95% single value) | 10     |
+| Dominant categorical (>90% single category)    | 5      |
+| `Id` + `Neighborhood`                          | 2      |
+| **Total**                                      | **16** |
+
+Shape went from 1,458 × 78 to 1,458 × 62 before feature engineering.
+
+---
+
+### Key Improvements vs Baseline
+
+| Engineered           | Correlation | Raw                          | Correlation |
+| -------------------- | ----------- | ---------------------------- | ----------- |
+| `qual_x_sf`          | 0.8490      | `OverallQual`                | 0.8214      |
+| `total_sf`           | 0.8236      | `GrLivArea`                  | 0.7255      |
+| `total_bathrooms`    | 0.6722      | `FullBath`                   | 0.5946      |
+| `neighbourhood_tier` | 0.5867      | Best raw neighbourhood dummy | 0.3518      |
+
+`qual_x_sf` is the strongest feature in the final dataset (r = 0.8490),
+outperforming both its parent features `OverallQual` and `GrLivArea`.
+
+---
+
+### Transformations Applied
+
+**log1p transform** applied to 5 highly skewed area/SF features
+(|skewness| > 1). `log1p` used over `log` to handle zero values
+cleanly — `log1p(0) = 0`.
+
+**One-hot encoding** applied to 17 nominal categorical columns with
+`drop_first=True`, producing 117 dummy columns.
+
+---
+
+### Final Dataset
+
+| Metric              | Value                    |
+| ------------------- | ------------------------ |
+| Rows                | 1,458                    |
+| Final feature count | 170                      |
+| Top feature         | `qual_x_sf` (r = 0.8490) |
+| Null values         | 0                        |
+| Object columns      | 0                        |
+| File size           | 683.4 KB                 |
+
+---
+
+### How to Run
+
+```bash
+python src/features.py
+```
+
+---
+
+### Files
+
+| File                               | Description                                     |
+| ---------------------------------- | ----------------------------------------------- |
+| `notebooks/03_modelling.ipynb`     | Full feature engineering notebook — 10 sections |
+| `src/features.py`                  | Production feature engineering pipeline         |
+| `data/processed/featured_data.csv` | Output artifact                                 |

@@ -109,6 +109,6 @@
 - BsmtQual (skewness = -1.2946)
 - MasVnrArea (skewness = 1.2899)
 - LotShape (skewness = -1.2865)
-- BsmtExposure (skewness = 1.2205)
 - OpenPorchSF (skewness = 1.1396)
+- BsmtExposure (skewness = 1.1075)
 - WoodDeckSF (skewness = 1.0880)
